@@ -31,11 +31,11 @@ public class Client {
 		client.close();
 	}
 	
-	public void request(String request, Consumer<Answer> answer){
-		Objects.requireNonNull(answer);
-		client.getNow(port, host, "/"+request, response ->{
-			response.bodyHandler(bodyBuffer -> {answer.accept(new Answer(bodyBuffer.toJsonObject()));
-			});
-		});
-	}
+//	public void request(String request, Consumer<Answer> answer){
+//		Objects.requireNonNull(answer);
+//		client.getNow(port, host, "/"+request, response ->{
+//			response.bodyHandler(bodyBuffer -> {answer.accept(new Answer(bodyBuffer.toJsonObject()));
+//			});
+//		});
+//	}
 }
