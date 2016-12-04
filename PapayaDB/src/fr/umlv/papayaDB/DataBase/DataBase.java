@@ -66,7 +66,7 @@ public class DataBase {
 		String typeString = query.getString("type");
 		QueryType type;
 		Stream<JsonObject> terminalResult = null;
-		Stream<Entry<Integer, Integer>> result = manager.getRecordsMap().entrySet().stream();
+		Stream<Entry<Integer, Integer>> result = manager.getObjects().entrySet().stream();
 		
 		try {
 			type = QueryType.valueOf(typeString);
@@ -128,8 +128,8 @@ public class DataBase {
 		if(elements == null) return Stream.empty();
 		
 		return elements.map(entry -> {
-			return storageManager.getRecordAtAddress(entry.getKey());
+			return storageManager.getRecord(entry.getKey());
 		});
-}
+	}	
 
 }
