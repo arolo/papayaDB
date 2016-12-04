@@ -14,7 +14,7 @@ import io.vertx.core.json.JsonObject;
 public class DataBase {
 	
 	private final String dBName;
-	private final DBManager manager = new DBManager();
+	private final DBManager manager;
 	
 	/* Optimisation (voire plus tard)*/
 	private final Map<String, TreeMap<?, Integer>> indexedCollection = new HashMap<>();
@@ -22,6 +22,7 @@ public class DataBase {
 	
 	public DataBase(String dBName){
 		this.dBName = dBName;
+		this.manager = new DBManager(dBName);
 	}
 	
 	public void insertObject(JsonObject jsonObject){
