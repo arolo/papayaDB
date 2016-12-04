@@ -8,8 +8,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import fr.umlv.papayaDB.Request.QueryParameter;
-import fr.umlv.papayaDB.Request.QueryType;
+import fr.umlv.papayaDB.Request.RequestParameter;
+import fr.umlv.papayaDB.Request.RequestType;
 import io.vertx.core.json.JsonObject;
 
 public class DataBase {
@@ -57,70 +57,58 @@ public class DataBase {
 	
 	
 	private Stream<JsonObject> workOnDB(JsonObject query) { //TO REWORK
-		if(!query.containsKey("type")) throw new Exception("No query type providen"); //ExceptionType ?
-		
 		String typeString = query.getString("type");
-		QueryType type;
+		RequestType type;
 		Stream<JsonObject> terminalResult = null;
 		Stream<Entry<Integer, Integer>> result = manager.getObjects().entrySet().stream();
 		
 		try {
-			type = QueryType.valueOf(typeString);
+			type = RequestType.valueOf(typeString);
 		}
 		catch(IllegalArgumentException e) {
-			throw new Exception("Query type "+typeString+" doesn't exists"); //ExceptionType ?
+			throw new IllegalArgumentException(); //ExceptionType ?
 		}
 		
-		JsonObject parametersContainer = query.getJsonObject("parameters");
-		if(parametersContainer != null) {
-			ArrayList<String> parametersNames = new ArrayList<>(parametersContainer.fieldNames());
-			parametersNames.sort((parameterName1, parameterName2) -> {
-				Optional<QueryParameter> qp1 = QueryParameter.getQueryParameterKey(type, parameterName1);
-				Optional<QueryParameter> qp2 = QueryParameter.getQueryParameterKey(type, parameterName2);
+		JsonObject parameters = query.getJsonObject("parameters");
+		if(parameters != null) {
+			ArrayList<String> parametersNames = new ArrayList<>(parameters.fieldNames());
+			parametersNames.sort((x, y) -> {
 				
-				//ExceptionType ?
-				if(!qp1.isPresent()) throw new Exception("Query parameter "+parameterName1+" doesn't exists or isn't correct with query type "+type.name());
-				if(!qp2.isPresent()) throw new Exception("Query parameter "+parameterName2+" doesn't exists or isn't correct with query type "+type.name());
-				
-				QueryParameter q1 = qp1.get();
-				QueryParameter q2 = qp2.get();
-				
-				if(!q1.isTerminalModifier()) return -1;
-				if(!q2.isTerminalModifier()) return 1;
+				if(!RequestParameter.getQueryParameterKey(type, x).get().isTerminalModifier()) return -1;
+				if(!RequestParameter.getQueryParameterKey(type, y).get().isTerminalModifier()) return 1;
 				
 				return 0;
 			});
 			
 			boolean reachedTerminalOperations = false;
-			for(String parameter : parametersContainer.fieldNames()) {
-				JsonObject parameters = parametersContainer.getJsonObject(parameter);
-				Optional<QueryParameter> queryParameter = QueryParameter.getQueryParameterKey(QueryType.GET, parameter);
-				if(queryParameter.isPresent()) {
-					QueryParameter qp = queryParameter.get();
+			for(String parameter : parameters.fieldNames()) {
+				JsonObject subparameters = parameters.getJsonObject(parameter);
+				Optional<RequestParameter> requestParameter = RequestParameter.getQueryParameterKey(RequestType.GET, parameter);
+				if(requestParameter.isPresent()) {
+					RequestParameter qp = requestParameter.get();
 					
-					// Si on a atteint les modificateurs terminaux
 					if(qp.isTerminalModifier()) {
 						if(!reachedTerminalOperations) {
 							reachedTerminalOperations = true;
-							terminalResult = convertAddressStreamToTerminal(result);
+							terminalResult = entryConvertToJsonObject(result);
 						}
-						terminalResult = qp.processTerminalOperation(parameters, terminalResult, manager);
+						terminalResult = qp.processTerminalOperation(subparameters, terminalResult, manager);
 					}
 					else {
-						result = qp.processQueryParameters(parameters, result, manager);
+						result = qp.processQueryParameters(subparameters, result, manager);
 					}
 				}
 			}
 		}
 		
 		if(terminalResult == null) {
-			terminalResult = convertAddressStreamToTerminal(result);
+			terminalResult = entryConvertToJsonObject(result);
 		}
 		
 		return terminalResult;
 }
 	
-	private Stream<JsonObject> convertAddressStreamToTerminal(Stream<Entry<Integer, Integer>> elements) {
+	private Stream<JsonObject> entryConvertToJsonObject(Stream<Entry<Integer, Integer>> elements) {
 		if(elements == null) return Stream.empty();
 		
 		return elements.map(entry -> {

@@ -17,37 +17,26 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fr.umlv.papayaDB.DataBase.DBManager;
 import io.vertx.core.json.JsonObject;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 
-/**
- * Classe abstraite représentant les différents paramètres de requete
- */
-public abstract class QueryParameter {
+public abstract class RequestParameter {
 	boolean isTerminalModifier = false;
 	
-	/**
-	 * Map des différents paramètres de requete en fonction du type de requete.
-	 */
-	static final Map<QueryType, Map<String, ? super QueryParameter>> parameter = new HashMap<>();
-	/**
-	 * Permet de savoir si la classe est déjà chargée ou non.
-	 */
+	static final Map<RequestType, Map<String, ? super RequestParameter>> parameter = new HashMap<>();
 	private static boolean isLoaded;
 	
 	static {
 		loadQueryParameter();
 	}
 	
-	/**
-	 * Méthode de chargement des différentes classes héritant de cette classe. Une instance est stockée dans la map, permettant 
-	 * d'appeller les méthode de ces classes dynamiquement.
-	 */
-	private static void loadQueryParameter() {
+	
+	private static void loadRParameter() {
 		//Création de la map pour chaque type contenu dans les QueryType
-		for (QueryType qt: QueryType.values()) {
-			parameter.put(qt, new HashMap<String, QueryParameter>());
+		for (RequestType type: RequestType.values()) {
+			parameter.put(type, new HashMap<String, RequestParameter>());
 		}
 		
 		Class<?>[] clazz = null;
@@ -88,15 +77,6 @@ public abstract class QueryParameter {
 		isLoaded = true;
 	}
 	
-	/**
-	 * Récupération des différentes classes d'un package
-	 * @param packageName
-	 * 				Nom du package dans lequel chercher les classes
-	 * @return
-	 * 				Retourne un tabeau des différentes classes du package
-	 * @throws ClassNotFoundException
-	 * @throws IOException
-	 */
 	private static Class<?>[] getClasses(String packageName) throws ClassNotFoundException, IOException {
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		String path = packageName.replace('.', '/');
@@ -114,17 +94,6 @@ public abstract class QueryParameter {
 		return (Class[]) classes.toArray(new Class[classes.size()]);
 	}
 
-    /**
-     * Chargement des différentes classes d'un package
-     * @param directory
-     * 				Dossier à partir du quel charger les classes
-     * @param packageName
-     * 				Nom du package
-     * @return
-     * 				Renvoie une liste des classes trouvées
-     * @throws ClassNotFoundException
-     * @throws IOException
-     */
     private static List<Class<?>> findClasses(Path directory, String packageName) throws ClassNotFoundException, IOException {
     	/*if (Files.exists(directory)) {
     		return classes;
@@ -144,93 +113,49 @@ public abstract class QueryParameter {
     									.collect(Collectors.toList());
     	return classes;
     }
-	
-	/**
-	 * Méthode à réimplémenter pour définir comment la classe s'enregistre.
-	 */
+
 	public static void registerParameter() {
 		throw new NotImplementedException();
 	}
-	
-	/**
-	 * Méthode permettant d'ajouter le la valeur dans le JSON.
-	 * Chaque classe qui hérite de {@link QueryParameter} connait la clé à ajouter et la méthode d'ajout.
-	 * 
-	 * @param json
-	 * 				{@link JsonObject} dans lequel ajouter la valeur
-	 * @param value
-	 * 				Valeur à ajouter
-	 * @return
-	 * 				Renvoie le {@link JsonObject} modifié. Il revient avec une erreur dans le cas où la classe à rencontré un soucis de traitement.
-	 */
+
 	public JsonObject valueToJson(JsonObject json, String value){
 		throw new NotImplementedException();
 	}
-	/**
-	 * Méthode qui permet de transformer une clé d'un document json en morceau d'url.
-	 * @param key
-	 * @param value
-	 * @return
-	 */
+	
 	public String valueToString(String key, JsonObject value) {
 		throw new NotImplementedException();
 	}
 	
-	/**
-	 * @param parameters
-	 * @param elements
-	 * @return
-	 */
-	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, FileStorageManager storageManager) {
+	
+	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, DBManager manager) {
 		throw new UnsupportedOperationException();
 	}
 	
-	/**
-	 * 
-	 * @param parameters
-	 * @param elements
-	 * @param storageManager
-	 * @return
-	 */
-	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, FileStorageManager storageManager) {
+
+	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, DBManager manager) {
 		throw new UnsupportedOperationException();
 	}
 	
-	/**
-	 * Renvoie le {@link JsonObject} associé au mot clé parameters du json donné 
-	 * @param json
-	 * 				{@link JsonObject} sur lequel chercher le champ parameters
-	 * @return
-	 * 				Le {@link JsonObject} parameters ou un {@link JsonObject} vide si la clé parameters n'existe pas
-	 */
+
 	static JsonObject getJsonParameters(JsonObject json) {
 		if(json.containsKey("parameters")) {
 			return json.getJsonObject("parameters");
 		}
 		return new JsonObject();
 	}
-	
-	/**
-	 * @param type
-	 * @return
-	 */
-	public static Map<String, ? super QueryParameter> getQueryParametersForType(QueryType type) {
+
+	public static Map<String, ? super RequestParameter> getQueryParametersForType(RequestType type) {
 		if(!isLoaded) {
 			loadQueryParameter();
 		}
 		return parameter.get(type);
 	}
-	
-	/**
-	 * @param type
-	 * @param key
-	 * @return
-	 */
-	public static Optional<QueryParameter> getQueryParameterKey(QueryType type, String key) {
+
+	public static Optional<RequestParameter> getQueryParameterKey(RequestType type, String key) {
 		if(!isLoaded) {
 			loadQueryParameter();
 		}
-		return Optional	.ofNullable((QueryParameter) getQueryParametersForType(type).get(key));
+		return Optional	.ofNullable((RequestParameter) getQueryParametersForType(type).get(key));
 	}
 	
 	public boolean isTerminalModifier() {
