@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpClientOptions;

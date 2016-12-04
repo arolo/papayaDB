@@ -99,7 +99,7 @@ public class DBManager {
 		}
 	}
 
-	private int insertObject(JsonObject jsonObject) {
+	public int insertObject(JsonObject jsonObject) {
 		Buffer buffer = Buffer.buffer();
 		// jsonObject.put("UID",UUID.randomUUID().toString());
 		buffer.appendBytes("UID".getBytes());
@@ -182,7 +182,7 @@ public class DBManager {
 		return insertionPosition;
 	}
 	
-	public void deleteRecord(int address) {
+	public void deleteObject(int address) {
 		int sizefile = adresses.getOrDefault(address, -1);
 		if(sizefile == -1) return;
 		
@@ -212,7 +212,7 @@ public class DBManager {
 		fileBuffer.position(temppos);
 		}
 	
-	public int updateRecord(int oldAddress, JsonObject newObject)
+	public int updateObject(int oldAddress, JsonObject newObject)
 	{
 		int oldSize = adresses.getOrDefault(oldAddress, -1);
 		if(oldSize == -1) {
@@ -280,8 +280,6 @@ public class DBManager {
 		}
 		return -1;
 }
-	
-	
 	
 	//REGISTER
 	private int[] registerNewSpace(Integer positionInFile, Integer chunkSize) {		

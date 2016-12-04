@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 import java.util.Objects;
 import java.util.function.Consumer;

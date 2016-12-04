@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fr.umlv.papayaDB.DataBase.DBManager;
 import io.vertx.core.json.JsonObject;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -181,7 +182,7 @@ public abstract class QueryParameter {
 	 * @param elements
 	 * @return
 	 */
-	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, FileStorageManager storageManager) {
+	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, DBManager storageManager) {
 		throw new UnsupportedOperationException();
 	}
 	
@@ -192,7 +193,7 @@ public abstract class QueryParameter {
 	 * @param storageManager
 	 * @return
 	 */
-	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, FileStorageManager storageManager) {
+	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, DBManager storageManager) {
 		throw new UnsupportedOperationException();
 	}
 	

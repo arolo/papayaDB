@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 //package papayaDB.api.query;
 

@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 import java.util.List;
 import io.vertx.core.json.JsonArray;

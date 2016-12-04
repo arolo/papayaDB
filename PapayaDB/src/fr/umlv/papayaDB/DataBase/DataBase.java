@@ -35,7 +35,7 @@ public class DataBase {
 	public void deleteObject(String id){
 		Optional<Integer> optional = manager.getObjects().keySet().stream()
 			.filter(key -> {
-				return manager.getObjectByAdress(key).getString("UID").equals(id);
+				return manager.getObject(key).getString("UID").equals(id);
 			}).findFirst();
 		
 		if (optional.isPresent()){
@@ -46,7 +46,7 @@ public class DataBase {
 	public void updateObject(String id, JsonObject jsonObject){
 		Optional<Integer> optional = manager.getObjects().keySet().stream()
 				.filter(key -> {
-					return manager.getObjectByAdress(key).getString("UID").equals(id);
+					return manager.getObject(key).getString("UID").equals(id);
 				}).findFirst();
 			
 			if (optional.isPresent()){
@@ -128,7 +128,7 @@ public class DataBase {
 		if(elements == null) return Stream.empty();
 		
 		return elements.map(entry -> {
-			return storageManager.getRecord(entry.getKey());
+			return manager.getObject(entry.getKey());
 		});
 	}	
 
