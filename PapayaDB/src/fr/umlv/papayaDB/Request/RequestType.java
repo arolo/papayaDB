@@ -1,6 +1,6 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
-public enum QueryType {
+public enum RequestType {
 	GET,
 	INSERT,
 	UPDATE,

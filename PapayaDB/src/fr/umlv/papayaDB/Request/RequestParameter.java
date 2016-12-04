@@ -1,4 +1,4 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
