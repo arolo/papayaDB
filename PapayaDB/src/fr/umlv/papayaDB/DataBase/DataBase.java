@@ -1,12 +1,10 @@
 package fr.umlv.papayaDB.DataBase;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,12 +16,8 @@ public class DataBase {
 	
 	private final String dBName;
 	private final DBManager manager;
-	
-	/* Optimisation (voire plus tard)*/
-	private final Map<String, TreeMap<?, Integer>> indexedCollection = new HashMap<>();
-	
-	
-	public DataBase(String dBName){
+		
+	public DataBase(String dBName) throws IOException{
 		this.dBName = dBName;
 		this.manager = new DBManager(dBName);
 	}
@@ -36,7 +30,8 @@ public class DataBase {
 		Optional<Integer> optional = manager.getObjects().keySet().stream()
 			.filter(key -> {
 				return manager.getObject(key).getString("UID").equals(id);
-			}).findFirst();
+			})
+			.findFirst();
 		
 		if (optional.isPresent()){
 			manager.deleteObject(optional.get());
@@ -47,7 +42,8 @@ public class DataBase {
 		Optional<Integer> optional = manager.getObjects().keySet().stream()
 				.filter(key -> {
 					return manager.getObject(key).getString("UID").equals(id);
-				}).findFirst();
+				})
+				.findFirst();
 			
 			if (optional.isPresent()){
 				manager.updateObject(optional.get(), jsonObject); 
@@ -60,7 +56,7 @@ public class DataBase {
 	}
 	
 	
-	private Stream<JsonObject> workOnDB(JsonObject query) {
+	private Stream<JsonObject> workOnDB(JsonObject query) { //TO REWORK
 		if(!query.containsKey("type")) throw new Exception("No query type providen"); //ExceptionType ?
 		
 		String typeString = query.getString("type");
