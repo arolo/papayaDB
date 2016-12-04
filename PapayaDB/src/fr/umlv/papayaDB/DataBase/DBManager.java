@@ -27,7 +27,7 @@ public class DBManager {
 	private HashMap<Integer, ArrayList<Integer>> holes = new HashMap<>(); // Map-inverse
 	private HashMap<Integer, Integer> adresses = new HashMap<>();
 	private final RandomAccessFile randomAccessFile;
-	private int numberOfObjects; // Not used ?
+	private int numberOfObjects; //Only used in initialization loop
 
 	public DBManager(String fileName) throws IOException {
 		Path path = Paths.get(fileName + ".papayadb");
@@ -219,6 +219,7 @@ public class DBManager {
 		int oldSize = ((int) Math.ceil((double) (size) / (double) 64) * 64) / 64;
 		int newSize = ((int) Math.ceil((double) (bytes.length + Integer.BYTES) / (double) 64) * 64) / 64;
 
+		//MEME TAILLE : On ecrase
 		if (oldSize == newSize) {
 			fileBuffer.position(oldAddress);
 			fileBuffer.putInt(bytes.length);
@@ -226,6 +227,7 @@ public class DBManager {
 			adresses.put(oldAddress, bytes.length);
 			return oldAddress;
 		}
+		//Trop de place : On ecrase puis on indique que c'est libre
 		if (oldSize > newSize) {
 			int delta = oldSize - newSize;
 			fileBuffer.position(oldAddress);
@@ -239,21 +241,15 @@ public class DBManager {
 			// REGISTER
 			return oldAddress;
 		}
+		
+		//Pas assez de place : On indique que c'est vide puis on cherche un espace pour stocker
 		if (oldSize < newSize) {
 			fileBuffer.position(oldAddress);
-			byte[] oldRecordInBytes = new byte[bytes.length];
-			fileBuffer.get(oldRecordInBytes, 0, bytes.length);
 			int newPos;
 			try {
-				for (Entry<Integer, ArrayList<Integer>> entry : holes.entrySet()) {
-					System.out.println(entry.getKey() + " => " + entry.getValue());
-				}
 				newPos = findPosition(newSize * 64);
-				for (Entry<Integer, ArrayList<Integer>> entry : holes.entrySet()) {
-					System.out.println(entry.getKey() + " => " + entry.getValue());
-				}
 			} catch (IOException e) {
-				// FAILURE
+				// FAIL : No place  for you
 				return oldAddress;
 			}
 
@@ -270,8 +266,10 @@ public class DBManager {
 		return -1;
 	}
 
-	/*private void notifySpaces(Integer position, Integer size) {
-		
-	}*/
+	/*
+	 * private void notifySpaces(Integer position, Integer size) { 
+	 * //Notify when a space is liberted 
+	 * }
+	 */
 
 }

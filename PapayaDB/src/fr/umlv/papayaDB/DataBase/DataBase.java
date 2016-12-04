@@ -68,9 +68,9 @@ public class DataBase {
 			ArrayList<String> parametersNames = new ArrayList<>(parameters.fieldNames());
 			parametersNames.sort((x, y) -> {
 
-				if (!RequestParameter.getQueryParameterKey(type, x).get().isTerminalModifier())
+				if (!RequestParameter.getParameterKey(type, x).get().isTerminalModifier())
 					return -1;
-				if (!RequestParameter.getQueryParameterKey(type, y).get().isTerminalModifier())
+				if (!RequestParameter.getParameterKey(type, y).get().isTerminalModifier())
 					return 1;
 
 				return 0;
@@ -79,19 +79,19 @@ public class DataBase {
 			boolean reachedTerminalOperations = false;
 			for (String parameter : parameters.fieldNames()) {
 				JsonObject subparameters = parameters.getJsonObject(parameter);
-				Optional<RequestParameter> requestParameter = RequestParameter.getQueryParameterKey(RequestType.GET,
+				Optional<RequestParameter> optionalrequestParameter = RequestParameter.getParameterKey(RequestType.GET,
 						parameter);
-				if (requestParameter.isPresent()) {
-					RequestParameter qp = requestParameter.get();
+				if (optionalrequestParameter.isPresent()) {
+					RequestParameter requestParameter = optionalrequestParameter.get();
 
-					if (qp.isTerminalModifier()) {
+					if (requestParameter.isTerminalModifier()) {
 						if (!reachedTerminalOperations) {
 							reachedTerminalOperations = true;
 							terminalResult = entryConvertToJsonObject(result);
 						}
-						terminalResult = qp.processTerminalOperation(subparameters, terminalResult, manager);
+						terminalResult = requestParameter.processTerminalOperation(subparameters, terminalResult, manager);
 					} else {
-						result = qp.processQueryParameters(subparameters, result, manager);
+						result = requestParameter.processQueryParameters(subparameters, result, manager);
 					}
 				}
 			}

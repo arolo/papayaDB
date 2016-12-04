@@ -4,42 +4,38 @@ import java.util.List;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-/**
- * Contien l'Objet Json de réponse et le code de status.
- * Le code de status es contenu aussi dans l'objet JSON, il est présent dans la classe pour des raisons de confort.
- */
 
-public class RequestResult {
-	private JsonObject data;		
-	private RequestAnswerStatus status;		
+public class RequestReturn {
+	private JsonObject content;
+	private RequestStatus status;
 	
-	public RequestResult(JsonObject answer) {
-		if(!answer.containsKey("status") || (answer.getString("status") == QueryAnswerStatus.OK.name() && !answer.containsKey("data"))) {
-			throw new IllegalArgumentException("JSON Object provided to build Query answer is malformed :"+answer.toString());
+	public RequestReturn(JsonObject obj) {
+		if(!obj.containsKey("status") || (obj.getString("status") == RequestStatus.OK.name() && !obj.containsKey("data"))) {
+			throw new IllegalArgumentException("JsonObject incorrect :" + obj.toString());
 		}
-		this.status = QueryAnswerStatus.valueOf(answer.getString("status"));
-		this.data = answer;
+		this.status = RequestStatus.valueOf(obj.getString("status"));
+		this.content = obj;
 	}
 	
 	@Override
 	public String toString() {
-		return status.name()+": "+data.encodePrettily();
+		return status.name() + " : " + content.encodePrettily();
 	}
 	
 	public JsonObject getData() {
-		return this.data;
+		return this.content;
 	}
 	
-	public static RequestResult buildNewErrorAnswer(QueryAnswerStatus status, String message) {
-		if(status == QueryAnswerStatus.OK) throw new IllegalArgumentException("OK status can't be used as an error status");
-		return new RequestResult(new JsonObject().put("type", status.name()).put("message", message));
+	public static RequestReturn buildNewErrorAnswer(RequestStatus status, String msg) {
+		if(status == RequestStatus.OK) throw new IllegalArgumentException("OK is not an error !!");
+		return new RequestReturn(new JsonObject().put("Type", status.name()).put("Message", msg));
 	}
 	
-	public static RequestResult buildNewDataAnswer(List<JsonObject> objects) {
-		return new RequestResult(new JsonObject().put("type", QueryAnswerStatus.OK.name()).put("data", new JsonArray(objects)));
+	public static RequestReturn buildNewDataAnswer(List<JsonObject> obj) {
+		return new RequestReturn(new JsonObject().put("Type", RequestStatus.OK.name()).put("data", new JsonArray(obj)));
 	}
 	
-	public static RequestResult buildNewEmptyOkAnswer() {
-		return new RequestResult(new JsonObject().put("type", QueryAnswerStatus.OK.name()));
+	public static RequestReturn buildNewEmptyOkAnswer() {
+		return new RequestReturn(new JsonObject().put("Type", RequestStatus.OK.name()));
 	}
 }

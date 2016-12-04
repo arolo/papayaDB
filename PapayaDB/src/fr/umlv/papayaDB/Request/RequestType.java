@@ -7,5 +7,5 @@ public enum RequestType {
 	DELETE,
 	CREATEDB,
 	DELETEDB,
-	EXPORTALL;
+	EXPORTDB;
 } 

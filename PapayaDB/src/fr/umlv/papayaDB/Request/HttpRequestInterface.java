@@ -1,32 +1,21 @@
-package fr.umlv.papayaDB;
+package fr.umlv.papayaDB.Request;
 
-//package papayaDB.api.query;
-
-
-import java.util.Objects;
+import java.util.Objects; 
 import java.util.function.Consumer;
 
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
-//import papayaDB.api.queryParameters.QueryParameter;
 
-/**
- * Cette classe représente une connexion utilisateur (un "noeud de tête") pour faire des requêtes sur un noeud papayaDB.
- */
-class HttpQueryInterface extends AbstractChainableQueryInterface {
-	private final HttpClient client;	// Objet utilisé pour le traitement des requêtes
-	private final int port;				// Port de connexion à l'hôte
-	private final String host;			// Nom de l'hôte de la connexion
+class HttpRequestInterface extends AbstractRequestInterface {
+	private final HttpClient client;
+	private final int port;			
+	private final String host;	
 	
+
 	
-//	  Crée une nouvelle connexion vers une interface de requête papayaDB.
-//	  @param host le nom de l'hôte REST pour la connexion
-//	  @param port le port pour la connexion
-	 
-	
-	public HttpQueryInterface(String host, int port) {
+	public HttpRequestInterface(String host, int port) {
 		client = getVertx().createHttpClient(new HttpClientOptions().setSsl(true).setTrustAll(true));
 		this.host = host;
 		this.port = port;
@@ -38,103 +27,99 @@ class HttpQueryInterface extends AbstractChainableQueryInterface {
 		super.close();
 	}
 	
-	public void processGetQuery(String query, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(callback);
-		client.getNow(port, host, query, resp -> {
-			System.out.println("Got response " + resp.statusCode());
-			System.out.println("[HTTPQI : processGetQuery] Got response " + resp.statusCode());
+	public void getRequest(String request, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(cons);
+		client.getNow(port, host, request, resp -> {
+			System.out.println("Answer " + resp.statusCode());
+			System.out.println("[getRequest] Answer " + resp.statusCode());
 			resp.bodyHandler(body -> {
-				callback.accept(new QueryAnswer(body.toJsonObject()));
+				cons.accept(new RequestReturn(body.toJsonObject()));
 			});
 		});
 	}
 	
-	public void processPostQuery(String query, JsonObject body, String user, String hash, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(callback);
+	public void followingRequest(String query, JsonObject content, String user, String hash, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(cons);
 		query = query + "/auth/[" + user + ";" + hash + "]";
 		HttpClientRequest request = client.post(port, host, query, resp -> {
-			System.out.println("Got response " + resp.statusCode());
-			System.out.println("[HTTPQI : processPostQuery] Got response " + resp.statusCode());
+			System.out.println("Answer " + resp.statusCode());
+			System.out.println("[followingRequest] Answer " + resp.statusCode());
 			resp.bodyHandler(bodyResponse -> {
-				callback.accept(new QueryAnswer(bodyResponse.toJsonObject()));
+				cons.accept(new RequestReturn(bodyResponse.toJsonObject()));
 			});
 		});
-		if(body == null) {
+		if(content == null) {
 			request.end();
 		} else {
-			request.end(body.toString());
+			request.end(content.toString());
 		}
 		
 	}
 	
-	public void processDeleteQuery(String query, String user, String hash, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(callback);
+	public void removeRequest(String query, String user, String hash, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(cons);
 		query = query + "/auth/[" + user + ";" + hash + "]";
 		client.delete(port, host, query, resp -> {
-			System.out.println("Got response " + resp.statusCode());
-			System.out.println("[HTTPQI : processDeleteQuery] Got response " + resp.statusCode());
+			System.out.println("Answer " + resp.statusCode());
+			System.out.println("[removeRequest] Answer " + resp.statusCode());
 			resp.bodyHandler(bodyResponse -> {
-				callback.accept(new QueryAnswer(bodyResponse.toJsonObject()));
+				cons.accept(new RequestReturn(bodyResponse.toJsonObject()));
 			});
 		}).end();
 	}
 
 	@Override
-	public void createNewDatabase(String name, String user, String hash, Consumer<QueryAnswer> callback) {
+	public void createNewDatabase(String name, String user, String hash, Consumer<RequestReturn> cons) {
 		Objects.requireNonNull(name);
-		processPostQuery("/createdb/" + name, null, user, hash, callback);
+		followingRequest("/createdb/" + name, null, user, hash, cons);
 	}
 
 	@Override
-	public void deleteDatabase(String name, String user, String hash, Consumer<QueryAnswer> callback) {
+	public void deleteDatabase(String name, String user, String hash, Consumer<RequestReturn> cons) {
 		Objects.requireNonNull(name);
-		processDeleteQuery("/deletedb/" + name, user, hash, callback);
+		removeRequest("/deletedb/" + name, user, hash, cons);
 	}
 
 	@Override
-	public void exportDatabase(String database, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(database);
-		processGetQuery("/exportall/" + database ,callback);
+	public void exportDatabase(String db, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(db);
+		getRequest("/exportall/" + db ,cons);
 	}
 
 	@Override
-	public void updateRecord(String database, String uid, JsonObject newRecord, String user, String hash, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(database);
+	public void updateRecord(String db, String uid, JsonObject obj, String user, String hash, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(db);
 		Objects.requireNonNull(uid);
-		Objects.requireNonNull(newRecord);
-		processPostQuery("/update/" + database, new JsonObject().put("uid", uid).put("record", newRecord), user, hash, callback);
+		Objects.requireNonNull(obj);
+		followingRequest("/update/" + db, new JsonObject().put("uid", uid).put("record", obj), user, hash, cons);
 	}
 
 	@Override
-	public void deleteRecords(String database, JsonObject parameters, String user, String hash, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(database);
-		Objects.requireNonNull(parameters);
-		StringBuilder sb = new StringBuilder("/delete/" + database);
-		for (String key: parameters.fieldNames()) {
-			// La méthode getQueryParameterKey sert à récuperer l'instance de la clé actuelle.
-			// valueToString permet de convertir l'objet json en une chaine utilisable dans l'URL
-			sb.append("/" + QueryParameter.getQueryParameterKey(QueryType.GET, key).get().valueToString(key, parameters.getJsonObject(key)));
+	public void deleteRecords(String db, JsonObject obj, String user, String hash, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(db);
+		Objects.requireNonNull(obj);
+		StringBuilder sb = new StringBuilder("/delete/" + db);
+		for (String key: obj.fieldNames()) {
+			sb.append("/" + RequestParameter.getParameterKey(RequestType.GET, key).get().valueToString(key, obj.getJsonObject(key)));
 		}
-		processDeleteQuery(sb.toString(), user, hash, callback);
+		removeRequest(sb.toString(), user, hash, cons);
 	}
 
 	@Override
-	public void insertNewRecord(String database, JsonObject record, String user, String hash, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(database);
-		Objects.requireNonNull(record);
-		processPostQuery("/insert/" + database, record, user, hash, callback);
+	public void insertNewRecord(String db, JsonObject obj, String user, String hash, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(db);
+		Objects.requireNonNull(obj);
+		followingRequest("/insert/" + db, obj, user, hash, cons);
 	}
 
 	@Override
-	public void getRecords(String database, JsonObject parameters, Consumer<QueryAnswer> callback) {
-		Objects.requireNonNull(database);
-		Objects.requireNonNull(parameters); 
-		StringBuilder sb = new StringBuilder("/get/" + database);
-		for (String key: parameters.fieldNames()) {
-			// La méthode getQueryParameterKey sert à récuperer l'instance de la clé actuelle.
-			// valueToString permet de convertir l'objet json en une chaine utilisable dans l'URL
-			sb.append("/" + QueryParameter.getQueryParameterKey(QueryType.GET, key).get().valueToString(key, parameters.getJsonObject(key)));
+	public void getRecords(String db, JsonObject obj, Consumer<RequestReturn> cons) {
+		Objects.requireNonNull(db);
+		Objects.requireNonNull(obj); 
+		StringBuilder sb = new StringBuilder("/get/" + db);
+		for (String key: obj.fieldNames()) {
+			sb.append("/" + RequestParameter.getParameterKey(RequestType.GET, key).get().valueToString(key, obj.getJsonObject(key)));
 		}
-		processGetQuery(sb.toString(), callback);
+		getRequest(sb.toString(), cons);
 	}
 }

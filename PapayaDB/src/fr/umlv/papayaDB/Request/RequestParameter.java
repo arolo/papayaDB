@@ -24,36 +24,31 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public abstract class RequestParameter {
 	boolean isTerminalModifier = false;
-	
 	static final Map<RequestType, Map<String, ? super RequestParameter>> parameter = new HashMap<>();
 	private static boolean isLoaded;
 	
 	static {
-		loadQueryParameter();
+		loadParameters();
 	}
 	
 	
-	private static void loadRParameter() {
-		//Création de la map pour chaque type contenu dans les QueryType
-		for (RequestType type: RequestType.values()) {
-			parameter.put(type, new HashMap<String, RequestParameter>());
+	private static void loadParameters() {
+		for (RequestType qt: RequestType.values()) {
+			parameter.put(qt, new HashMap<String, RequestParameter>());
 		}
 		
 		Class<?>[] clazz = null;
 		try {
-			//Récupération des différentes classes du package
-			clazz = getClasses("papayaDB.api.queryParameters");
+			clazz = getClasses("fr.umlv.papayaDB");
 		} catch (ClassNotFoundException | IOException e) {
 			
 		}
-		//pour chaque classe, si elle hérite de celle ci, on invoke sa méthode register pour qu'elle s'ajoute dans la bonne map.
 		for (Class<?> c : clazz) {
-			if(!c.getName().toString().endsWith("QueryParameter")) {
+			if(!c.getName().toString().endsWith("RequestParameter")) {
 				Method method = null;
 				try {
 					method = c.getMethod("registerParameter");
 				} catch (NoSuchMethodException | SecurityException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				
@@ -73,7 +68,6 @@ public abstract class RequestParameter {
 				}
 			}
 		}
-		// Confirmation du chargement des différentes classes.
 		isLoaded = true;
 	}
 	
@@ -84,7 +78,6 @@ public abstract class RequestParameter {
 		List<Path> dirs = new ArrayList<>();
 		while (resources.hasMoreElements()) {
 			URL resource = (URL) resources.nextElement();
-			// Fix pour les path Windows
 			dirs.add(Paths.get(resource.getPath().replaceFirst("^/(.:/)", "$1")));
 		}
 		ArrayList<Class<?>> classes = new ArrayList<>();
@@ -95,11 +88,6 @@ public abstract class RequestParameter {
 	}
 
     private static List<Class<?>> findClasses(Path directory, String packageName) throws ClassNotFoundException, IOException {
-    	/*if (Files.exists(directory)) {
-    		return classes;
-    	}*/
-    	
-    	//TODO: voir dans le tp 3 pour faire ça propre
     	Stream<Path> files = Files.list(directory);
     	List<Class<?>> classes = files	.filter(f -> f.getFileName().toString().endsWith(".class"))
     									.map(f -> {
@@ -113,49 +101,54 @@ public abstract class RequestParameter {
     									.collect(Collectors.toList());
     	return classes;
     }
-
+	
+    
 	public static void registerParameter() {
 		throw new NotImplementedException();
 	}
+	
 
 	public JsonObject valueToJson(JsonObject json, String value){
 		throw new NotImplementedException();
 	}
+
 	
 	public String valueToString(String key, JsonObject value) {
 		throw new NotImplementedException();
 	}
 	
-	
-	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, DBManager manager) {
+
+	public Stream<Map.Entry<Integer, Integer>> processQueryParameters(JsonObject parameters, Stream<Map.Entry<Integer, Integer>> elements, DBManager storageManager) {
 		throw new UnsupportedOperationException();
 	}
 	
 
-	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, DBManager manager) {
+	public Stream<JsonObject> processTerminalOperation(JsonObject parameters, Stream<JsonObject> elements, DBManager storageManager) {
 		throw new UnsupportedOperationException();
 	}
 	
-
+	
 	static JsonObject getJsonParameters(JsonObject json) {
 		if(json.containsKey("parameters")) {
 			return json.getJsonObject("parameters");
 		}
 		return new JsonObject();
 	}
+	
 
-	public static Map<String, ? super RequestParameter> getQueryParametersForType(RequestType type) {
+	public static Map<String, ? super RequestParameter> getParameterType(RequestType type) {
 		if(!isLoaded) {
-			loadQueryParameter();
+			loadParameters();
 		}
 		return parameter.get(type);
 	}
+	
 
-	public static Optional<RequestParameter> getQueryParameterKey(RequestType type, String key) {
+	public static Optional<RequestParameter> getParameterKey(RequestType type, String key) {
 		if(!isLoaded) {
-			loadQueryParameter();
+			loadParameters();
 		}
-		return Optional	.ofNullable((RequestParameter) getQueryParametersForType(type).get(key));
+		return Optional.ofNullable((RequestParameter) getParameterType(type).get(key));
 	}
 	
 	public boolean isTerminalModifier() {
