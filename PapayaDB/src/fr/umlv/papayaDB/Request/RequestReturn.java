@@ -9,15 +9,11 @@ import io.vertx.core.json.JsonObject;
  * Le code de status es contenu aussi dans l'objet JSON, il est présent dans la classe pour des raisons de confort.
  */
 
-public class QueryAnswer {
-	private JsonObject data;		// Objet JSON renvoyé.
-	private QueryAnswerStatus status;		// Status de la réponse. Stocké en plus dans ce champs pour faciliter les tests sur la réponse de la requête.
+public class RequestResult {
+	private JsonObject data;		
+	private RequestAnswerStatus status;		
 	
-	/**
-	 * Constructeur de la {@link QueryAnswer}
-	 * @param answer La réponse qui sera contenue dans l'objet.
-	 */
-	public QueryAnswer(JsonObject answer) {
+	public RequestResult(JsonObject answer) {
 		if(!answer.containsKey("status") || (answer.getString("status") == QueryAnswerStatus.OK.name() && !answer.containsKey("data"))) {
 			throw new IllegalArgumentException("JSON Object provided to build Query answer is malformed :"+answer.toString());
 		}
@@ -34,16 +30,16 @@ public class QueryAnswer {
 		return this.data;
 	}
 	
-	public static QueryAnswer buildNewErrorAnswer(QueryAnswerStatus status, String message) {
+	public static RequestResult buildNewErrorAnswer(QueryAnswerStatus status, String message) {
 		if(status == QueryAnswerStatus.OK) throw new IllegalArgumentException("OK status can't be used as an error status");
-		return new QueryAnswer(new JsonObject().put("type", status.name()).put("message", message));
+		return new RequestResult(new JsonObject().put("type", status.name()).put("message", message));
 	}
 	
-	public static QueryAnswer buildNewDataAnswer(List<JsonObject> objects) {
-		return new QueryAnswer(new JsonObject().put("type", QueryAnswerStatus.OK.name()).put("data", new JsonArray(objects)));
+	public static RequestResult buildNewDataAnswer(List<JsonObject> objects) {
+		return new RequestResult(new JsonObject().put("type", QueryAnswerStatus.OK.name()).put("data", new JsonArray(objects)));
 	}
 	
-	public static QueryAnswer buildNewEmptyOkAnswer() {
-		return new QueryAnswer(new JsonObject().put("type", QueryAnswerStatus.OK.name()));
+	public static RequestResult buildNewEmptyOkAnswer() {
+		return new RequestResult(new JsonObject().put("type", QueryAnswerStatus.OK.name()));
 	}
 }

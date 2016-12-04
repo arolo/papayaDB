@@ -14,7 +14,7 @@ import io.vertx.core.json.JsonObject;
 
 public class DataBase {
 	
-	private final String dBName;
+	private final String dBName; //Utility ?
 	private final DBManager manager;
 		
 	public DataBase(String dBName) throws IOException{
