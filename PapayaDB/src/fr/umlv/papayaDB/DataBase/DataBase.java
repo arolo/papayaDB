@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fr.umlv.papayaDB.Request.QueryParameter;
+import fr.umlv.papayaDB.Request.QueryType;
 import io.vertx.core.json.JsonObject;
 
 public class DataBase {
@@ -119,6 +122,14 @@ public class DataBase {
 		}
 		
 		return terminalResult;
+}
+	
+	private Stream<JsonObject> convertAddressStreamToTerminal(Stream<Entry<Integer, Integer>> elements) {
+		if(elements == null) return Stream.empty();
+		
+		return elements.map(entry -> {
+			return storageManager.getRecordAtAddress(entry.getKey());
+		});
 }
 
 }

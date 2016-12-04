@@ -3,6 +3,7 @@ package fr.umlv.papayaDB.DataBase;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
@@ -122,6 +123,19 @@ public class DBManager {
 	public HashMap<Integer, Integer> getObjects() {
 		return new HashMap<>(adresses);
 	}
+	
+	public JsonObject getObject(int address) {
+		int realSize = adresses.getOrDefault(address, -1);
+		if(realSize == -1) return null; //Y a pas
+		
+		byte[] byteArr = ByteBuffer.allocate(realSize).array();
+		fileBuffer.position(address);
+		
+		fileBuffer.getInt();
+		fileBuffer.get(byteArr, 0, realSize);
+		Buffer b = Buffer.buffer(byteArr);
+		return b.toJsonObject();
+}
 
 	private int findPosition(int size) throws IOException { // to reshape : too
 															// long
@@ -167,5 +181,153 @@ public class DBManager {
 
 		return insertionPosition;
 	}
+	
+	public void deleteRecord(int address) {
+		int sizefile = adresses.getOrDefault(address, -1);
+		if(sizefile == -1) return;
+		
+		int size = (int) Math.ceil((double) (sizefile)/ (double) 64)*64;
+		
+		fileBuffer.position(address);
+		for(int i = 0; i < size; i++) {
+			fileBuffer.put((byte)0);
+		}
+		
+		 int[] infos = new int[2];
+		// REGISTER 
+		
+		MappedByteBuffer buffer;
+		try {
+			buffer = fileChannel.map(MapMode.READ_WRITE, infos[0], Integer.BYTES*2);
+			buffer.putInt(-1);
+			buffer.putInt(infos[1]);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		numberOfObjects = numberOfObjects-1;
+		int temppos = fileBuffer.position();
+		fileBuffer.rewind();
+		fileBuffer.putInt(numberOfObjects-1);
+		fileBuffer.position(temppos);
+		}
+	
+	public int updateRecord(int oldAddress, JsonObject newObject)
+	{
+		int oldSize = adresses.getOrDefault(oldAddress, -1);
+		if(oldSize == -1) {
+			return -1;
+		}
+		byte[] bytes = newObject.toString().getBytes();
+		
+		int oldSizeInChunks = ((int) Math.ceil((double) (oldSize)/ (double) 64)*64)/64;
+		int newSizeInChunks = ((int) Math.ceil((double) (bytes.length+Integer.BYTES)/ (double) 64)*64)/64;
+		
+		if(oldSizeInChunks == newSizeInChunks) {
+			fileBuffer.position(oldAddress);
+			fileBuffer.putInt(bytes.length);
+			fileBuffer.put(bytes);
+			adresses.put(oldAddress, bytes.length);
+			return oldAddress;
+		}
+		if(oldSizeInChunks > newSizeInChunks) {
+			int chunkSizeDiff = oldSizeInChunks - newSizeInChunks;
+			fileBuffer.position(oldAddress);
+			fileBuffer.putInt(bytes.length);
+			fileBuffer.put(bytes);
+			adresses.put(oldAddress, bytes.length);
+			
+			int holePos = oldAddress + chunkSizeDiff*64;
+			fileBuffer.position(holePos);
+			fileBuffer.putInt(-1);
+			fileBuffer.putInt(chunkSizeDiff);
+			//RESGISTER
+			return oldAddress;
+		}
+		if(oldSizeInChunks > newSizeInChunks) {
+			fileBuffer.position(oldAddress);
+			byte[] oldRecordInBytes = new byte[bytes.length];
+			fileBuffer.get(oldRecordInBytes, 0, bytes.length);
+			int newPos;
+			try {
+				for(Entry<Integer, ArrayList<Integer>> entry : holes.entrySet()) {
+					System.out.println(entry.getKey()+" => "+entry.getValue());
+		}
+				newPos = findPosition(newSizeInChunks*64);
+				for(Entry<Integer, ArrayList<Integer>> entry : holes.entrySet()) {
+					System.out.println(entry.getKey()+" => "+entry.getValue());
+		}
+			} catch (IOException e) {
+				// Pas réussi à modifier (IOException sur findSuitableSize) : on réinscrit l'ancien au même endroit
+				fileBuffer.position(oldAddress);
+				fileBuffer.putInt(oldRecordInBytes.length);
+				fileBuffer.put(oldRecordInBytes);
+				return oldAddress;
+			}
+			
+			// Ecriture au nouvel endroit
+			fileBuffer.position(newPos);
+			fileBuffer.putInt(bytes.length);
+			fileBuffer.put(bytes);
+			
+			// Suppression de l'ancien exemplaire
+			fileBuffer.position(oldAddress);
+			fileBuffer.putInt(-1);
+			fileBuffer.putInt(oldSizeInChunks);
+			//REGISTER
+			adresses.put(newPos, bytes.length);
+			return newPos;
+		}
+		return -1;
+}
+	
+	
+	
+	//REGISTER
+	private int[] registerNewSpace(Integer positionInFile, Integer chunkSize) {		
+		int holePosition = positionInFile;
+		
+		// Essaie de trouver si la section suivante est le début d'un trou ou pas
+		int nextSectionPosition = positionInFile+chunkSize*64;
+		Entry<Integer, ArrayList<Integer>> nextHoleEntry = holes.entrySet().stream()
+																		.filter(currentEntry -> currentEntry.getValue().contains(nextSectionPosition))
+																		.findFirst()
+																		.orElse(null);
+		
+		// Si la fin de la section à effacer est bien le début d'un trou, on agrandit le trou
+		if(nextHoleEntry != null) {
+			int holeSizeInChunks = nextHoleEntry.getKey();
+			ArrayList<Integer> holes = nextHoleEntry.getValue();
+//			System.out.println("Found a hole section just right after the one to create : "+nextSectionPosition+" in "+holes+" (chunks size "+holeSizeInChunks+")");
+			holes.remove((Integer) nextSectionPosition);
+			chunkSize += holeSizeInChunks;
+		}
+		
+		// Essaie de trouver la section précédente vide si elle existe
+		Entry<Integer, ArrayList<Integer>> previousHoleEntry = holes.entrySet().stream()
+																				.filter(currentEntry -> currentEntry.getValue().contains(positionInFile - currentEntry.getKey()*64))
+																				.findFirst()
+																				.orElse(null);
+		// S'il y a bien une entrée avant
+		if(previousHoleEntry != null) {
+			int holeSizeInChunks = previousHoleEntry.getKey();
+			ArrayList<Integer> holes = previousHoleEntry.getValue();
+			int previousSectionPosition = positionInFile - holeSizeInChunks*64;
+			
+			holes.remove((Integer) previousSectionPosition);
+			holePosition = previousSectionPosition;
+			chunkSize += holeSizeInChunks;
+		}
+		
+		
+		
+		ArrayList<Integer> emptyChunksOfThisSize = holes.getOrDefault(chunkSize, new ArrayList<>());
+		emptyChunksOfThisSize.add(holePosition);
+		holes.put(chunkSize, emptyChunksOfThisSize);
+		adresses.remove(positionInFile);
+		return new int[]{holePosition, chunkSize};
+}
+	
+	
 
 }
